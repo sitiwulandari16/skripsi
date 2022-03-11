@@ -1,0 +1,127 @@
+#untuk peramalan
+library(forecast)
+install.packages("fpp2")
+library(fpp2)
+install.packages("dplyr") 
+#praproses data
+library(dplyr)
+#menguji data stasioner
+library(tseries)
+install.packages("MLmetrics") 
+#evaluasi model
+library(MLmetrics)
+#visualisasi data
+library(ggplot2)
+install.packages("plotly")
+#membuat grafik
+library(plotly)
+library(stats)
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("rmarkdown")
+
+library(rmarkdown)
+install.packages("TTR")
+library(TTR)
+install.packages("TSstudio")
+#visualisasi time series
+library(TSstudio)
+install.packages("tidyr")
+library(tidyr)
+
+
+#data bulanan curah hujan di Sumatera Selatan tahun 2016-2020
+setwd("C:/SKRIPSI")
+curah_hujan=read.csv2("curah hujan.csv", sep = ";", header = T)
+curah_hujan
+head(curah_hujan)
+
+#memisahkan data 
+#memfilter data bulan dan curah hujan
+dataCH=select(curah_hujan, 2,3)
+dataCH
+
+View(dataCH)
+#dimensi data
+dim(dataCH)
+#komponen data
+str(dataCH)
+names(dataCH)
+#memeriksa data yang hilang
+colSums(is.na(dataCH))
+#dataCH
+head(dataCH)
+
+#struktur data
+rmarkdown::paged_table(dataCH)
+ts_dataCH=ts(dataCH$Curah.Hujan)
+ts_dataCH
+
+#plot data
+plot.ts(dataCH$Curah.Hujan, main="Raw data plotted")
+#untuk plot data curah hujan dan bulan
+plot_dataCH=ggplot(dataCH, aes(x=Bulan.Ke., y=Curah.Hujan)) + geom_line(col="red") + ggtitle("Curah Hujan Prov. Sumatera Selatan")
+ggplotly(plot_dataCH)
+
+#summary
+summary(dataCH)
+
+#model ARIMA
+#hipotesis
+#H0=data tidak stasioner
+#H1=data stasioner
+adf.test(ts_dataCH)
+autoplot(ts_dataCH)
+
+#stasioner data
+ts_dataCH_1=diff(ts_dataCH, differences = 1)
+adf.test(ts_dataCH_1)
+
+#PACF dan ACF
+pacf(ts_dataCH_1, lag.max = 50)
+acf(ts_dataCH_1)
+acf(ts_dataCH_1, lag.max = 50)
+
+#Arima
+arima_dataCH=Arima(y=ts_dataCH, order=c(1,0,1))
+print(arima_dataCH)
+
+#Auto Arima
+auto_dataCH=auto.arima(y=ts_dataCH_1, seasonal=TRUE)
+auto_dataCH
+
+#Manual Arima
+manual_dataCH=arima(ts_dataCH_1, order = c(0,1,0))
+manual_dataCH
+
+#Forecasting
+forecast_dataCH=forecast(arima_dataCH, 6)
+forecast_dataCH
+
+#akurasi
+#data aktual
+setwd("C:/SKRIPSI")
+data2020=read.csv2("data aktual.csv", sep = ";", header = T)
+data2020
+
+#memisahkan data 
+#memfilter data bulan dan curah hujan
+dataCH2020=select(data2020, 2,3)
+dataCH2020
+
+#dimensi data
+dim(dataCH2020)
+#komponen data
+names(dataCH2020)
+#memeriksa data yang hilang
+colSums(is.na(dataCH2020))
+#dataCH
+head(dataCH2020)
+
+data_forecast=as.data.frame(forecast_dataCH)
+data_forecast=data_forecast$`Point Forecast`
+data_forecast=as.data.frame(data_forecast)
+head(data_forecast)
+
+#akurasi MAPE
+accuracy(data_forecast$data_forecast, dataCH2020$Curah.Hujan)
